@@ -1,1 +1,190 @@
-(function(){'use strict';var root=document.getElementById('dch-studio');if(!root||typeof DCH_STUDIO==='undefined')return;var state={pageId:0,modifiedGmt:'',previewUrl:'',status:''};function el(id){return document.getElementById(id)}function setStatus(message,type){var n=el('dch-status');n.textContent=message;n.className='dch-status'+(type?' is-'+type:'')}function pretty(v){return JSON.stringify(v,null,2)}async function api(path,options){var c=options||{};c.headers=Object.assign({'X-WP-Nonce':DCH_STUDIO.nonce,'Content-Type':'application/json'},c.headers||{});var r=await fetch(DCH_STUDIO.restBase.replace(/\/$/,'')+path,c);var p=await r.json().catch(function(){return{}});if(!r.ok){var e=new Error(p.message||'Request failed with status '+r.status+'.');e.payload=p;throw e}return p.data!==undefined?p.data:p}function requirePage(){if(!state.pageId)throw new Error('Select or create a target draft first.');return state.pageId}async function refreshPages(selectId){setStatus('Loading pages...');var d=await api('/pages'),s=el('dch-page-select'),cur=selectId||state.pageId||parseInt(s.value||'0',10);s.innerHTML='<option value="">Select a page...</option>';d.pages.forEach(function(p){var o=document.createElement('option');o.value=String(p.id);o.textContent=p.title+' ['+p.status+'] #'+p.id;s.appendChild(o)});if(cur)s.value=String(cur);setStatus('Pages loaded.','success')}async function createDraft(){var title=el('dch-new-title').value.trim(),slug=el('dch-new-slug').value.trim();if(!title)throw new Error('Enter a title for the new draft.');setStatus('Creating draft...');var p=await api('/drafts',{method:'POST',body:JSON.stringify({title:title,slug:slug})});await refreshPages(p.id);await loadPage(p.id);setStatus('Draft created: #'+p.id+' '+p.title,'success')}async function loadPage(forcedId){var id=forcedId||parseInt(el('dch-page-select').value||'0',10);if(!id)throw new Error('Select a page first.');setStatus('Loading page #'+id+'...');var p=await api('/pages/'+id);state.pageId=p.id;state.modifiedGmt=p.modified_gmt;state.previewUrl=p.preview_url||p.permalink||'';state.status=p.status;el('dch-page-select').value=String(p.id);el('dch-content').value=p.content||'';el('dch-css').value=p.css||'';el('dch-open-preview').href=state.previewUrl||'#';el('dch-validation').textContent=pretty(p.validation);setStatus('Loaded #'+p.id+' ('+p.status+').',p.status==='draft'?'success':'warning');await loadHistory()}async function saveReference(){var html=el('dch-reference-html').value;if(!html.trim())throw new Error('Paste reference HTML first.');setStatus('Creating sandboxed reference...');var d=await api('/references',{method:'POST',body:JSON.stringify({name:'Design Reference',html:html})});el('dch-open-reference').href=d.preview_url;setStatus('Reference ready for visual comparison. It expires in 6 hours.','success')}async function compileBlueprint(){var raw=el('dch-blueprint').value.trim();if(!raw)throw new Error('Paste Blueprint JSON first.');var bp;try{bp=JSON.parse(raw)}catch(e){throw new Error('Blueprint JSON is invalid: '+e.message)}setStatus('Compiling blueprint...');var d=await api('/compile',{method:'POST',body:JSON.stringify({blueprint:bp})});el('dch-content').value=d.content||'';if(typeof d.css==='string')el('dch-css').value=d.css;el('dch-validation').textContent=pretty(d.validation||d);setStatus(d.valid?'Blueprint compiled and validated.':'Blueprint compiled with validation errors.',d.valid?'success':'error')}async function validateBuild(){setStatus('Validating Gutenberg block tree...');var d=await api('/validate',{method:'POST',body:JSON.stringify({content:el('dch-content').value})});el('dch-validation').textContent=pretty(d);setStatus(d.valid?'Build is valid.':'Build validation failed.',d.valid?'success':'error');return d}async function applyBuild(){var id=requirePage();if(state.status!=='draft')throw new Error('Design Core Hub only writes to draft pages. Current page status: '+state.status+'.');setStatus('Applying validated build to draft...');var d=await api('/pages/'+id+'/apply',{method:'POST',body:JSON.stringify({content:el('dch-content').value,css:el('dch-css').value,expected_modified_gmt:state.modifiedGmt,note:'Before browser build'})});state.modifiedGmt=d.page.modified_gmt;state.previewUrl=d.page.preview_url||d.page.permalink||state.previewUrl;state.status=d.page.status;el('dch-open-preview').href=state.previewUrl||'#';el('dch-validation').textContent=pretty(d.validation);setStatus('Build applied to draft #'+id+'. Open Draft to inspect it visually.','success');await loadHistory()}async function loadContext(){setStatus('Reading site context...');var d=await api('/context');el('dch-inspection').textContent=pretty(d);setStatus('Site context loaded.','success')}async function loadDesignSystem(){setStatus('Reading WordPress global design system...');var d=await api('/design-system');el('dch-inspection').textContent=pretty(d);setStatus('Design system loaded.','success')}async function searchBlocks(){var q=el('dch-block-search').value.trim();setStatus('Searching registered Gutenberg blocks...');var d=await api('/blocks?limit=100&search='+encodeURIComponent(q));el('dch-inspection').textContent=pretty(d);setStatus('Found '+d.count+' registered block(s).','success')}async function loadHistory(){if(!state.pageId){el('dch-history').innerHTML='<p>Select a page to view build history.</p>';return}var d=await api('/pages/'+state.pageId+'/history'),host=el('dch-history');host.innerHTML='';if(!d.history.length){host.innerHTML='<p>No Design Core build snapshots yet.</p>';return}d.history.forEach(function(entry){var row=document.createElement('div');row.className='dch-history-row';var meta=document.createElement('div'),title=document.createElement('strong'),detail=document.createElement('span');title.textContent=entry.label||'Build snapshot';detail.textContent=' '+entry.created_gmt+' UTC - '+entry.id;meta.appendChild(title);meta.appendChild(detail);var b=document.createElement('button');b.type='button';b.className='button';b.textContent='Rollback';b.addEventListener('click',function(){run(function(){return rollback(entry.id)})});row.appendChild(meta);row.appendChild(b);host.appendChild(row)})}async function rollback(entryId){var id=requirePage();if(!window.confirm('Rollback draft #'+id+' to this Design Core snapshot? The current state will be snapshotted first.'))return;setStatus('Rolling back draft...');var d=await api('/pages/'+id+'/rollback',{method:'POST',body:JSON.stringify({entry_id:entryId})});state.modifiedGmt=d.page.modified_gmt;await loadPage(id);setStatus('Draft rolled back. Current state was preserved in history.','success')}async function run(fn){try{await fn()}catch(e){console.error(e);var detail=e.payload&&e.payload.data&&e.payload.data.details?'\n'+pretty(e.payload.data.details):'';setStatus(e.message+detail,'error')}}el('dch-create-draft').addEventListener('click',function(){run(createDraft)});el('dch-refresh-pages').addEventListener('click',function(){run(refreshPages)});el('dch-load-page').addEventListener('click',function(){run(loadPage)});el('dch-save-reference').addEventListener('click',function(){run(saveReference)});el('dch-compile').addEventListener('click',function(){run(compileBlueprint)});el('dch-validate').addEventListener('click',function(){run(validateBuild)});el('dch-apply').addEventListener('click',function(){run(applyBuild)});el('dch-load-context').addEventListener('click',function(){run(loadContext)});el('dch-load-design-system').addEventListener('click',function(){run(loadDesignSystem)});el('dch-search-blocks').addEventListener('click',function(){run(searchBlocks)});el('dch-load-history').addEventListener('click',function(){run(loadHistory)});el('dch-page-select').addEventListener('change',function(){var id=parseInt(this.value||'0',10);if(id)run(function(){return loadPage(id)})});run(refreshPages)}());
+(function () {
+    'use strict';
+
+    const root = document.getElementById('dch-hub');
+    if (!root || typeof DCH_HUB === 'undefined') return;
+
+    const $ = (selector) => root.querySelector(selector);
+    const banner = $('#dch-status-banner');
+
+    function setBanner(message, type) {
+        banner.textContent = message;
+        banner.className = 'dch-status ' + (type ? 'is-' + type : '');
+    }
+
+    async function request(path, options) {
+        const settings = Object.assign({ method: 'GET', credentials: 'same-origin' }, options || {});
+        settings.headers = Object.assign({ 'X-WP-Nonce': DCH_HUB.nonce }, settings.headers || {});
+        if (settings.body && typeof settings.body !== 'string') {
+            settings.headers['Content-Type'] = 'application/json';
+            settings.body = JSON.stringify(settings.body);
+        }
+
+        const response = await fetch(DCH_HUB.restBase + path, settings);
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false) {
+            const error = payload.error && payload.error.message ? payload.error.message : ('Request failed with HTTP ' + response.status);
+            throw new Error(error);
+        }
+        return payload.data || {};
+    }
+
+    function settingsPayload() {
+        return {
+            owner: $('#dch-owner').value.trim(),
+            repo: $('#dch-repo').value.trim(),
+            branch: $('#dch-branch').value.trim(),
+            build_root: $('#dch-build-root').value.trim(),
+            site_key: $('#dch-site-key-input').value.trim(),
+            enabled: $('#dch-enabled').checked,
+            public_trigger: $('#dch-public-trigger').checked
+        };
+    }
+
+    function renderSettings(data) {
+        const settings = data.settings || {};
+        $('#dch-owner').value = settings.owner || '';
+        $('#dch-repo').value = settings.repo || '';
+        $('#dch-branch').value = settings.branch || '';
+        $('#dch-build-root').value = settings.build_root || '';
+        $('#dch-site-key-input').value = settings.site_key || '';
+        $('#dch-enabled').checked = !!settings.enabled;
+        $('#dch-public-trigger').checked = !!settings.public_trigger;
+        $('#dch-site-key').textContent = settings.site_key || '—';
+        $('#dch-latest-path').textContent = data.latest_path || '—';
+        $('#dch-public-status-url').value = data.status_url || '';
+        $('#dch-public-sync-url').value = data.public_sync_url || '';
+        $('#dch-auto-sync-state').textContent = settings.enabled ? 'Enabled' : 'Disabled';
+        $('#dch-next-cron').textContent = 'Next cron (GMT): ' + (data.next_cron_gmt || 'not scheduled');
+        if (data.status) renderStatus(data.status);
+    }
+
+    function renderStatus(status) {
+        $('#dch-sync-output').textContent = JSON.stringify(status, null, 2);
+        const type = status.state === 'success' || status.state === 'no_change' ? 'success' : (status.state === 'error' ? 'error' : 'info');
+        setBanner((status.state || 'status') + ': ' + (status.message || ''), type);
+    }
+
+    function escapeHtml(value) {
+        return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderDrafts(data) {
+        const drafts = data.drafts || [];
+        if (!drafts.length) {
+            $('#dch-drafts').innerHTML = '<p>No Design Core managed drafts found.</p>';
+            return;
+        }
+
+        const rows = drafts.map((draft) => `
+            <tr>
+                <td>${escapeHtml(draft.id)}</td>
+                <td><strong>${escapeHtml(draft.title)}</strong><br><code>${escapeHtml(draft.slug)}</code></td>
+                <td><code>${escapeHtml(draft.build_id || 'local/unbuilt')}</code></td>
+                <td>${escapeHtml(draft.modified_gmt)}</td>
+                <td class="dch-row-actions">
+                    ${draft.preview_url ? `<a class="button button-small" href="${escapeHtml(draft.preview_url)}" target="_blank" rel="noopener">Preview</a>` : ''}
+                    ${draft.edit_url ? `<a class="button button-small" href="${escapeHtml(draft.edit_url)}">Edit</a>` : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        $('#dch-drafts').innerHTML = `
+            <table class="widefat striped">
+                <thead><tr><th>ID</th><th>Draft</th><th>Build</th><th>Modified GMT</th><th></th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    async function loadSettings() {
+        try {
+            const data = await request('/settings');
+            renderSettings(data);
+        } catch (error) {
+            setBanner(error.message, 'error');
+        }
+    }
+
+    async function loadDrafts() {
+        try {
+            renderDrafts(await request('/managed-drafts'));
+        } catch (error) {
+            setBanner(error.message, 'error');
+        }
+    }
+
+    $('#dch-save-settings').addEventListener('click', async function () {
+        setBanner('Saving settings…', 'info');
+        try {
+            await request('/settings', { method: 'POST', body: { settings: settingsPayload() } });
+            await loadSettings();
+            setBanner('Settings saved.', 'success');
+        } catch (error) {
+            setBanner(error.message, 'error');
+        }
+    });
+
+    $('#dch-sync-now').addEventListener('click', async function () {
+        setBanner('Fetching the latest GitHub build…', 'info');
+        try {
+            const result = await request('/sync', { method: 'POST', body: {} });
+            renderStatus(result);
+            await loadDrafts();
+        } catch (error) {
+            setBanner(error.message, 'error');
+        }
+    });
+
+    $('#dch-refresh').addEventListener('click', loadSettings);
+    $('#dch-refresh-drafts').addEventListener('click', loadDrafts);
+
+    root.addEventListener('click', async function (event) {
+        const button = event.target.closest('.dch-copy');
+        if (!button) return;
+        const input = $(button.getAttribute('data-copy'));
+        if (!input) return;
+        try {
+            await navigator.clipboard.writeText(input.value);
+            setBanner('Copied to clipboard.', 'success');
+        } catch (error) {
+            input.select();
+            document.execCommand('copy');
+            setBanner('Copied to clipboard.', 'success');
+        }
+    });
+
+    $('#dch-copy-chat-prompt').addEventListener('click', async function () {
+        const siteKey = $('#dch-site-key').textContent.trim();
+        const latestPath = $('#dch-latest-path').textContent.trim();
+        const statusUrl = $('#dch-public-status-url').value;
+        const syncUrl = $('#dch-public-sync-url').value;
+        const repo = $('#dch-owner').value.trim() + '/' + $('#dch-repo').value.trim();
+        const branch = $('#dch-branch').value.trim();
+        const prompt = [
+            'Use WordPress Design Core Hub for this site.',
+            'GitHub repository: ' + repo,
+            'Branch: ' + branch,
+            'Site key: ' + siteKey,
+            'Latest pointer path: ' + latestPath,
+            'Status URL: ' + statusUrl,
+            'Sync URL: ' + syncUrl,
+            '',
+            'For every build: write immutable build files first, write manifest.json after them, then update latest.json LAST. Trigger the sync URL and verify the status URL. Only create Gutenberg draft builds; do not publish.'
+        ].join('\n');
+        try {
+            await navigator.clipboard.writeText(prompt);
+            setBanner('ChatGPT setup prompt copied.', 'success');
+        } catch (error) {
+            setBanner('Could not access the clipboard. Copy the endpoint fields manually.', 'error');
+        }
+    });
+
+    loadSettings();
+    loadDrafts();
+})();

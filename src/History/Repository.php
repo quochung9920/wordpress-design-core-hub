@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Repository {
     private const META_KEY = '_dch_history';
-    private const LIMIT    = 20;
+    private const LIMIT    = 30;
 
     public static function snapshot( int $post_id, string $label = '' ): array {
         $post = get_post( $post_id );
@@ -16,13 +16,17 @@ final class Repository {
         }
 
         $entry = array(
-            'id'           => wp_generate_uuid4(),
-            'created_gmt'  => current_time( 'mysql', true ),
-            'user_id'      => get_current_user_id(),
-            'label'        => sanitize_text_field( $label ),
-            'post_content' => (string) $post->post_content,
-            'page_css'     => (string) get_post_meta( $post_id, '_dch_page_css', true ),
-            'modified_gmt' => (string) $post->post_modified_gmt,
+            'id'              => wp_generate_uuid4(),
+            'created_gmt'     => current_time( 'mysql', true ),
+            'user_id'         => get_current_user_id(),
+            'label'           => sanitize_text_field( $label ),
+            'post_title'      => (string) $post->post_title,
+            'post_name'       => (string) $post->post_name,
+            'post_content'    => (string) $post->post_content,
+            'page_css'        => (string) get_post_meta( $post_id, '_dch_page_css', true ),
+            'modified_gmt'    => (string) $post->post_modified_gmt,
+            'remote_build_id' => (string) get_post_meta( $post_id, '_dch_remote_build_id', true ),
+            'manifest_hash'   => (string) get_post_meta( $post_id, '_dch_remote_manifest_hash', true ),
         );
 
         $history = self::all( $post_id );

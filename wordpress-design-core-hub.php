@@ -2,8 +2,8 @@
 /**
  * Plugin Name: WordPress Design Core Hub
  * Plugin URI: https://github.com/quochung9920/wordpress-design-core-hub
- * Description: Browser-optimized Gutenberg build studio for creating high-fidelity WordPress draft pages from reference HTML and AI-generated block plans.
- * Version: 0.1.0
+ * Description: GitHub-driven Gutenberg build agent for creating high-fidelity WordPress draft pages from ChatGPT without MCP or browser automation.
+ * Version: 0.2.0
  * Requires at least: 6.6
  * Requires PHP: 7.4
  * Author: Design Core Hub
@@ -15,11 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'DCH_VERSION', '0.1.0' );
+define( 'DCH_VERSION', '0.2.0' );
 define( 'DCH_FILE', __FILE__ );
 define( 'DCH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DCH_URL', plugin_dir_url( __FILE__ ) );
 define( 'DCH_CAPABILITY', 'design_core_hub_build' );
+define( 'DCH_SYNC_HOOK', 'design_core_hub_remote_sync' );
 
 spl_autoload_register(
     static function ( $class ) {
@@ -37,15 +38,8 @@ spl_autoload_register(
     }
 );
 
-register_activation_hook(
-    __FILE__,
-    static function () {
-        $role = get_role( 'administrator' );
-        if ( $role && ! $role->has_cap( DCH_CAPABILITY ) ) {
-            $role->add_cap( DCH_CAPABILITY );
-        }
-    }
-);
+register_activation_hook( __FILE__, array( 'DesignCoreHub\\Plugin', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'DesignCoreHub\\Plugin', 'deactivate' ) );
 
 add_action(
     'plugins_loaded',

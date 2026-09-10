@@ -1,1 +1,194 @@
-.dch-studio{max-width:1440px;margin:28px 24px 60px 4px}.dch-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:18px}.dch-header h1{margin:0 0 6px;font-size:30px;line-height:1.2}.dch-header p{max-width:840px;margin:0;color:#50575e;font-size:14px}.dch-version{padding:5px 10px;border:1px solid #c3c4c7;border-radius:999px;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.dch-status{position:sticky;z-index:20;top:32px;margin:0 0 18px;padding:11px 14px;border-left:4px solid #2271b1;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.04);white-space:pre-wrap}.dch-status.is-success{border-left-color:#00a32a}.dch-status.is-warning{border-left-color:#dba617}.dch-status.is-error{border-left-color:#d63638}.dch-card{margin:0 0 18px;padding:22px;border:1px solid #dcdcde;border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.03)}.dch-card h2{margin:0 0 14px;font-size:18px}.dch-grid{display:grid;gap:16px;align-items:end}.dch-grid-2{grid-template-columns:minmax(0,1fr) minmax(260px,.6fr)}.dch-grid-3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}.dch-mt{margin-top:14px}.dch-card label{display:grid;gap:6px;font-weight:600}.dch-card input[type=text],.dch-card input[type=search],.dch-card select{width:100%;min-height:38px}.dch-field-actions,.dch-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.dch-actions{margin-top:12px}.dch-code{box-sizing:border-box;width:100%;min-height:220px;margin:8px 0 14px;padding:12px;border-radius:4px;tab-size:2;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;resize:vertical}.dch-code-lg{min-height:360px}.dch-details{margin:0 0 18px;padding:12px 14px;border:1px solid #dcdcde;border-radius:6px;background:#f6f7f7}.dch-details summary{cursor:pointer;font-weight:600}.dch-output{overflow:auto;max-height:360px;margin:14px 0 0;padding:14px;border-radius:6px;background:#1d2327;color:#f0f0f1;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}.dch-output-lg{max-height:620px}.dch-history{margin-top:12px}.dch-history-row{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:10px 0;border-top:1px solid #dcdcde}.dch-history-row span{color:#646970;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}.dch-reference-page{margin-right:20px}.dch-reference-frame{display:block;width:100%;height:calc(100vh - 150px);min-height:720px;border:1px solid #c3c4c7;background:#fff}@media(max-width:900px){.dch-grid-2,.dch-grid-3{grid-template-columns:1fr}.dch-field-actions{align-items:flex-start}}
+.dch-hub {
+    max-width: 1240px;
+    margin-top: 24px;
+}
+
+.dch-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+}
+
+.dch-header h1 {
+    margin: 0 0 6px;
+}
+
+.dch-header p {
+    margin: 0;
+    max-width: 850px;
+    color: #50575e;
+    font-size: 14px;
+}
+
+.dch-version {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border: 1px solid #c3c4c7;
+    border-radius: 999px;
+    background: #fff;
+    font-weight: 600;
+}
+
+.dch-status {
+    margin: 0 0 18px;
+    padding: 11px 14px;
+    border-left: 4px solid #646970;
+    background: #fff;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
+}
+
+.dch-status.is-success { border-left-color: #00a32a; }
+.dch-status.is-error { border-left-color: #d63638; }
+.dch-status.is-info { border-left-color: #2271b1; }
+
+.dch-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.dch-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dch-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.dch-card {
+    box-sizing: border-box;
+    margin: 0 0 18px;
+    padding: 22px;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+}
+
+.dch-card-compact {
+    margin: 0;
+    min-height: 150px;
+}
+
+.dch-summary {
+    margin-bottom: 18px;
+}
+
+.dch-card h2 {
+    margin: 0 0 12px;
+    font-size: 17px;
+}
+
+.dch-card p:last-child { margin-bottom: 0; }
+
+.dch-card code {
+    overflow-wrap: anywhere;
+}
+
+.dch-card-compact > code,
+.dch-card-compact > strong {
+    display: block;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.dch-card-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.dch-card-title-row h2 {
+    margin-bottom: 5px;
+}
+
+.dch-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dch-hub label {
+    display: grid;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.dch-hub input[type="text"] {
+    width: 100%;
+    min-height: 38px;
+}
+
+.dch-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 28px;
+    margin: 20px 0;
+}
+
+.dch-checks label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 500;
+}
+
+.dch-copy-field {
+    grid-template-columns: 170px minmax(0, 1fr) auto !important;
+    align-items: center;
+    gap: 10px !important;
+    margin: 10px 0;
+}
+
+.dch-copy-field input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+}
+
+.dch-output {
+    box-sizing: border-box;
+    overflow: auto;
+    width: 100%;
+    max-height: 520px;
+    margin: 0;
+    padding: 16px;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    background: #f6f7f7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.dch-table-wrap {
+    overflow-x: auto;
+}
+
+.dch-row-actions {
+    white-space: nowrap;
+    text-align: right;
+}
+
+.dch-security ul {
+    margin: 0 0 0 20px;
+    list-style: disc;
+}
+
+.dch-security li {
+    margin-bottom: 8px;
+}
+
+@media (max-width: 960px) {
+    .dch-grid-2,
+    .dch-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .dch-copy-field {
+        grid-template-columns: 1fr !important;
+    }
+
+    .dch-card-title-row,
+    .dch-header {
+        flex-direction: column;
+    }
+}
