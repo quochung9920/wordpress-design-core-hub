@@ -1,99 +1,239 @@
 # WordPress Design Core Hub
 
-Browser-optimized Gutenberg build studio for ChatGPT-driven visual implementation.
+**GitHub-driven Gutenberg build agent for ChatGPT Chat.**
 
-The project is intentionally **not an MCP server**. Its primary workflow is a logged-in ChatGPT browser session using a compact WordPress admin screen to create and iterate on Gutenberg draft pages with very few browser actions.
+Design Core Hub lets a normal ChatGPT conversation create and iterate on WordPress Gutenberg draft pages without MCP and without ChatGPT Work/browser automation.
 
-## Goal
+The control path is intentionally simple:
 
-The target experience is:
+```text
+ChatGPT Chat
+   ↓
+GitHub build inbox
+   ↓
+WordPress Design Core Hub
+   ↓
+Validate integrity + Gutenberg structure
+   ↓
+Managed WordPress draft
+```
 
-1. Upload a reference HTML file to ChatGPT.
-2. Tell ChatGPT to recreate it in WordPress with Gutenberg.
-3. ChatGPT opens **Design Core Studio** in `wp-admin`.
-4. It creates a draft, inspects the site design system/block registry when necessary, pastes semantic Gutenberg serialization plus page-scoped CSS, validates, and applies.
-5. ChatGPT opens the sandboxed reference and WordPress draft, visually compares them, patches the build, and repeats.
-6. Publishing remains a separate deliberate WordPress action.
+## What changed in v0.2
 
-## v0.1 scope
+v0.1 was a browser-oriented wp-admin studio. v0.2 makes **GitHub the primary control transport** and keeps wp-admin only for setup, monitoring, manual sync, and rollback/debugging.
 
-- Browser-first WordPress admin studio.
-- Create new WordPress draft pages.
-- Load existing pages for inspection.
-- Draft-only build writes.
-- Serialized Gutenberg block validation using WordPress' native parser and live block registry.
-- Optional JSON Blueprint compiler for common native blocks.
-- Page-scoped CSS for high-fidelity implementation without polluting other pages.
-- Sandboxed temporary HTML reference preview.
-- Live registered block catalog and schema-like metadata.
-- Global design-system inspection through WordPress global settings/styles.
-- Optimistic revision check before writes.
-- Design Core build snapshots and rollback.
-- No MCP, API key, shell, arbitrary PHP execution, or arbitrary SQL execution.
+A ChatGPT conversation can now:
+
+1. Read an uploaded HTML/CSS reference.
+2. Generate semantic Gutenberg block serialization plus page CSS.
+3. Commit an immutable build bundle to this repository.
+4. Update `latest.json` last.
+5. Call the site's public draft-only sync URL.
+6. Read the site's public sync-status URL to verify whether the build was accepted.
+
+No WordPress credentials, MCP server, OpenAI API key, or GitHub token needs to be sent to ChatGPT for this workflow.
 
 ## Installation
 
-Copy this repository to:
+Download this repository as a ZIP and install it in WordPress:
 
 ```text
-wp-content/plugins/wordpress-design-core-hub
+Plugins → Add New Plugin → Upload Plugin
 ```
 
-Activate **WordPress Design Core Hub** in WordPress. Activation grants the `design_core_hub_build` capability to the Administrator role.
+Activate **WordPress Design Core Hub**.
 
-Open:
+On activation the plugin:
+
+- grants `design_core_hub_build` to Administrators;
+- creates safe default remote settings;
+- derives a site key from the WordPress home URL;
+- schedules a GitHub inbox check every five minutes through WP-Cron.
+
+Then open:
 
 ```text
 wp-admin/admin.php?page=design-core-hub
 ```
 
-## Recommended ChatGPT browser prompt
+The admin screen shows the site's exact GitHub inbox path and the two public chat-only URLs:
 
 ```text
-Use the attached HTML as the visual reference. Open Design Core Studio in the WordPress admin and recreate the page as a Gutenberg draft. Prefer semantic native Gutenberg blocks. Use page CSS for visual fidelity. Validate before every apply. Open both the sandboxed reference and draft frontend, compare desktop and mobile, then iterate until the draft matches the reference closely. Do not publish the page.
+/wp-json/design-core-hub/v1/remote-status
+/wp-json/design-core-hub/v1/remote-sync
 ```
 
-## Build modes
+## Default repository configuration
 
-### Direct Gutenberg serialization (preferred)
-
-ChatGPT can paste valid serialized Gutenberg content directly into the Studio. This is the most flexible v0.1 path.
-
-```html
-<!-- wp:group {"className":"hero"} -->
-<div class="wp-block-group hero">
-<!-- wp:heading {"level":1,"className":"hero-title"} -->
-<h1 class="wp-block-heading hero-title">Engineering a better future.</h1>
-<!-- /wp:heading -->
-</div>
-<!-- /wp:group -->
+```text
+Owner:      quochung9920
+Repository: wordpress-design-core-hub
+Branch:     main
+Build root: builds
+Site key:   derived from the WordPress domain
 ```
 
-Page CSS is stored separately and printed only on that page.
+For `https://example.com`, the default pointer is:
 
-### Blueprint JSON compiler
+```text
+builds/example-com/latest.json
+```
 
-The deterministic compiler currently supports `group`, `columns`, `column`, `heading`, `paragraph`, `buttons`, `button`, `image`, `spacer`, `separator`, `list`, and `quote`.
+The settings are editable from **Design Core → GitHub build inbox**.
 
-For designs outside this schema, use direct Gutenberg serialization rather than falling back to `core/html`.
+## ChatGPT workflow
 
-## Security model
+After initial WordPress installation, a normal chat can be given:
 
-- Build access requires both `design_core_hub_build` and `edit_pages`.
-- REST calls use normal logged-in WordPress REST authentication and nonce protection from the admin UI.
-- Apply/rollback operations only work on `draft` pages.
-- Expected `post_modified_gmt` prevents overwriting a draft changed after ChatGPT loaded it.
-- Builds are validated against the live WordPress block registry.
-- `core/html` and `core/shortcode` are reported as fallback warnings.
-- References are temporary (6 hours), tied to the current user, and displayed in a restrictive sandboxed iframe.
-- Every apply and rollback snapshots both Gutenberg content and Design Core CSS.
+- the WordPress site URL;
+- an HTML reference file;
+- the GitHub repository (already connected to ChatGPT in the intended workflow).
 
-## Architecture principle
+A useful instruction is:
 
-WordPress stores block-editor content as serialized block markup in `post_content`. Design Core Hub validates that markup with WordPress' parser and runtime block registry before writing, keeping WordPress itself as the source of truth instead of maintaining a proprietary parallel page tree.
+```text
+Recreate the attached HTML on https://example.com using WordPress Design Core Hub.
+Use semantic registered Gutenberg blocks and page-scoped CSS. Do not use core/html or freeform HTML.
+Write the immutable build bundle under builds/example-com/<build_id>/, then update builds/example-com/latest.json LAST.
+Trigger https://example.com/wp-json/design-core-hub/v1/remote-sync and verify https://example.com/wp-json/design-core-hub/v1/remote-status.
+Only create/update the Design Core managed draft. Never publish it.
+```
 
-## Roadmap
+See [`builds/README.md`](builds/README.md) for the exact build protocol.
 
-The next useful increments are visual-iteration capabilities, not ACF or WooCommerce: media workflows, targeted block patching, richer native block helpers, reusable patterns, responsive QA helpers, and optional custom Gutenberg interaction blocks only where core blocks cannot preserve the reference design.
+## Build bundle
 
-ACF, WooCommerce, Elementor, and other builders are intentionally outside the v0.1 focus.
+Every build is immutable:
+
+```text
+builds/<site-key>/
+├── latest.json
+└── <build-id>/
+    ├── manifest.json
+    ├── blocks.html
+    └── styles.css
+```
+
+The write order matters:
+
+```text
+1. blocks.html
+2. styles.css
+3. manifest.json
+4. latest.json   ← ALWAYS LAST
+```
+
+`latest.json` is the atomic pointer. WordPress never scans arbitrary commits or partially uploaded directories.
+
+## Safety model
+
+### Trusted source
+
+The configured GitHub repository and branch are the only build source. v0.2 supports a **public GitHub repository**, so WordPress stores no GitHub access token.
+
+### Integrity
+
+`latest.json` contains the SHA-256 of `manifest.json`. The manifest contains the SHA-256 of `blocks.html` and `styles.css`. WordPress verifies every hash before parsing or applying anything.
+
+### Draft-only writes
+
+Remote sync can only create or update a page that:
+
+- is a WordPress `page`;
+- is in `draft` status;
+- carries Design Core management metadata;
+- matches the deterministic remote target key for the configured site and manifest slug.
+
+It cannot attach itself to an arbitrary existing page and it refuses published targets.
+
+### Gutenberg validation
+
+Before a build is applied, Design Core Hub parses the content with WordPress' native block parser and checks every block against the site's live `WP_Block_Type_Registry`.
+
+By default, the remote manifest enables semantic-only policy, which rejects:
+
+- freeform markup outside blocks;
+- `core/html`;
+- `core/shortcode`.
+
+Registered native or installed third-party Gutenberg blocks are allowed.
+
+### No remote code execution surface
+
+The remote build protocol does **not** support:
+
+- PHP execution;
+- SQL;
+- shell commands;
+- arbitrary WordPress options;
+- plugin/theme installation;
+- PHP/theme file editing;
+- publishing;
+- user management.
+
+The public sync endpoint accepts no page content. It only asks WordPress to fetch the current trusted GitHub pointer.
+
+### Public trigger
+
+The public trigger exists so ChatGPT Chat can apply a build without a logged-in WordPress browser session. It is globally rate-limited and can be disabled in wp-admin. Even when enabled, it remains draft-only and can only pull from the configured GitHub inbox.
+
+## WP-Cron
+
+Design Core Hub checks GitHub every five minutes. WordPress WP-Cron is traffic-driven, so an exact five-minute delivery is not guaranteed on low-traffic sites. The public `/remote-sync` endpoint provides an immediate chat-driven trigger when needed.
+
+## Admin UI
+
+The v0.2 admin page is intentionally a monitoring/debug surface rather than the primary builder. It provides:
+
+- site key and expected `latest.json` path;
+- public status/sync URLs;
+- GitHub owner/repository/branch/build-root settings;
+- enable/disable switches;
+- manual sync;
+- last sync details;
+- managed draft listing;
+- history data/rollback through the authenticated REST controller.
+
+## Page CSS
+
+Build CSS is stored in `_dch_page_css` and printed only on the managed page, so a high-fidelity ChatGPT build can use detailed CSS without globally polluting unrelated pages.
+
+Managed pages receive body classes such as:
+
+```text
+dch-managed-page
+dch-page-123
+dch-target-homepage-ai-draft
+```
+
+## Current scope
+
+v0.2 stays focused on visual Gutenberg page creation:
+
+- Gutenberg block content;
+- page-specific CSS;
+- site block registry inspection;
+- global design-system inspection;
+- draft creation/update;
+- integrity validation;
+- build history/rollback;
+- GitHub inbox synchronization.
+
+Not in scope yet:
+
+- ACF;
+- WooCommerce;
+- Elementor;
+- arbitrary WordPress administration;
+- automatic screenshot/visual-diff infrastructure;
+- automatic publishing.
+
+## Visual QA limitation
+
+The GitHub transport solves **creation and iteration from ChatGPT Chat**, but a normal text/web chat does not automatically provide the same interactive visual browser QA loop as ChatGPT Work/Computer Use.
+
+A future release can add a separate screenshot runner/visual QA adapter. Until then, visual feedback can come from screenshots supplied in chat or another approved rendering service. This limitation does not affect automated GitHub → Gutenberg draft delivery.
+
+## Version
+
+Current plugin version: **0.2.0**
