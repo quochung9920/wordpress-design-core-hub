@@ -1,5 +1,40 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-Thumbs.db
-*.log
+
+# Dependencies
+node_modules/
 /vendor/
 /node_modules/
+vendor/
+
+# Build & dist
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets -- never commit real tokens/credentials
+.env
+.env.*
+!.env.example
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# WordPress plugin local artifacts
+*.local.json
+tests/**/results.json
+tests/**/results-local.json
