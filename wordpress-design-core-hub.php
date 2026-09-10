@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Design Core Hub
  * Plugin URI: https://github.com/quochung9920/wordpress-design-core-hub
  * Description: GitHub-driven Gutenberg build agent for creating high-fidelity WordPress draft pages from ChatGPT without MCP or browser automation.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires at least: 6.6
  * Requires PHP: 7.4
  * Author: Design Core Hub
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'DCH_VERSION', '0.2.0' );
+define( 'DCH_VERSION', '0.2.1' );
 define( 'DCH_FILE', __FILE__ );
 define( 'DCH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'DCH_URL', plugin_dir_url( __FILE__ ) );
